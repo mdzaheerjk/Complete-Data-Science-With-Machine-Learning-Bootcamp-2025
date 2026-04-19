@@ -1,958 +1,982 @@
-# 📈 Linear Regression — Complete ML/DL Notes
+# 📐 Linear Regression — Complete ML/DL Job-Ready Notes
 
-> **Topic:** Supervised Learning | **Type:** Regression | **Level:** Beginner → Advanced
+> **Sources:** Andrew Ng ML Specialization (Coursera) · Hands-On ML with Scikit-Learn (Aurélien Géron) · StatQuest (Josh Starmer) · Scikit-Learn Docs · ISLP (James et al.)
 
 ---
 
 ## 📚 Table of Contents
 
 1. [What is Linear Regression?](#1-what-is-linear-regression)
-2. [Types of Linear Regression](#2-types-of-linear-regression)
-3. [The Math Behind It](#3-the-math-behind-it)
-4. [Cost Function (Loss)](#4-cost-function-loss)
-5. [Gradient Descent](#5-gradient-descent)
-6. [Normal Equation (Closed-Form)](#6-normal-equation-closed-form)
+2. [Types](#2-types)
+3. [The Math](#3-the-math)
+4. [Cost Function (MSE / SSE)](#4-cost-function)
+5. [Gradient Descent — Full Deep Dive](#5-gradient-descent)
+6. [Normal Equation (Closed-Form)](#6-normal-equation)
 7. [Assumptions](#7-assumptions)
 8. [Evaluation Metrics](#8-evaluation-metrics)
-9. [Hyperparameters](#9-hyperparameters)
-10. [Regularization (Ridge, Lasso, ElasticNet)](#10-regularization-ridge-lasso-elasticnet)
-11. [Feature Scaling](#11-feature-scaling)
-12. [Complete Python Code](#12-complete-python-code)
-13. [Sklearn Implementation](#13-sklearn-implementation)
-14. [Common Mistakes & Tips](#14-common-mistakes--tips)
-15. [Interview Questions](#15-interview-questions)
+9. [Python from Scratch](#9-python-from-scratch)
+10. [Scikit-Learn Implementation](#10-scikit-learn-implementation)
+11. [Hyperparameters & Tuning](#11-hyperparameters--tuning)
+12. [Regularization (Ridge, Lasso, ElasticNet)](#12-regularization)
+13. [Feature Scaling & Preprocessing](#13-feature-scaling--preprocessing)
+14. [Polynomial Regression](#14-polynomial-regression)
+15. [Bias-Variance Tradeoff](#15-bias-variance-tradeoff)
+16. [Common Interview Questions](#16-common-interview-questions)
+17. [Resources](#17-resources)
 
 ---
 
 ## 1. What is Linear Regression?
 
-Linear Regression is a **supervised machine learning algorithm** that models the relationship between:
-- **Input features** (independent variables) → `X`
-- **Output/target** (dependent variable) → `y`
+> **Simple Statement:** Linear Regression tries to draw the **best-fit straight line** through data points to predict a continuous number.
 
-It assumes the relationship is **linear** (a straight line in 2D, a hyperplane in higher dimensions).
+- **Task type:** Supervised Learning → Regression
+- **Output:** Continuous value (e.g., house price, salary, temperature)
+- **Goal:** Find the line (or hyperplane) that minimizes prediction error
 
-### Simple Analogy
-> If you study more hours → you score more marks. Linear Regression finds that line!
-
-### When to Use
-- Predicting house prices, salaries, stock prices
-- When the relationship between X and y is approximately linear
-- When you need interpretability (understand *which* features matter)
+**Real-world examples:**
+- Predicting house prices from area (sqft)
+- Predicting salary from years of experience
+- Predicting CO₂ emissions from engine size
 
 ---
 
-## 2. Types of Linear Regression
+## 2. Types
 
-| Type | Features | Formula |
-|---|---|---|
-| **Simple** | 1 input feature | `y = w₀ + w₁x` |
-| **Multiple** | 2+ input features | `y = w₀ + w₁x₁ + w₂x₂ + ... + wₙxₙ` |
-| **Polynomial** | Non-linear data, uses powers of x | `y = w₀ + w₁x + w₂x²` |
+| Type | Description | Example |
+|------|-------------|---------|
+| **Simple Linear Regression** | 1 input feature, 1 output | Area → Price |
+| **Multiple Linear Regression** | n input features, 1 output | Area + Rooms + Location → Price |
+| **Polynomial Regression** | Non-linear via degree expansion | Curved relationship |
+| **Ridge Regression** | L2 regularization | Prevent overfitting |
+| **Lasso Regression** | L1 regularization + feature selection | Sparse models |
+| **ElasticNet** | L1 + L2 combined | Best of both |
 
 ---
 
-## 3. The Math Behind It
+## 3. The Math
 
 ### Simple Linear Regression
 
-```
-ŷ = w₀ + w₁ · x
-```
+$$\hat{y} = w \cdot x + b$$
 
-Where:
-- `ŷ` = predicted value
-- `w₀` = **bias / intercept** (value of y when x = 0)
-- `w₁` = **weight / slope** (how much y changes per unit of x)
-- `x` = input feature
+- $\hat{y}$ = predicted value
+- $x$ = input feature
+- $w$ = weight (slope) — how much $y$ changes per unit of $x$
+- $b$ = bias (intercept) — value of $y$ when $x = 0$
 
 ### Multiple Linear Regression
 
-```
-ŷ = w₀ + w₁x₁ + w₂x₂ + ... + wₙxₙ
-```
+$$\hat{y} = w_1x_1 + w_2x_2 + \cdots + w_nx_n + b$$
 
-### Matrix / Vector Form (used in code)
+**Vector form (compact):**
 
-```
-ŷ = X · W
-```
+$$\hat{y} = \mathbf{w}^T \mathbf{x} + b$$
 
-Where:
-- `X` = feature matrix of shape `(m, n+1)` — includes a column of 1s for bias
-- `W` = weight vector of shape `(n+1, 1)`
-- `m` = number of samples
-- `n` = number of features
+Or with bias absorbed into weight vector:
 
-**Example:**
+$$\hat{y} = \boldsymbol{\theta}^T \mathbf{x}$$
 
-```
-X = [[1, x₁₁, x₁₂],     W = [[w₀],
-     [1, x₂₁, x₂₂],          [w₁],
-     [1, x₃₁, x₃₂]]          [w₂]]
+where $\boldsymbol{\theta} = [b, w_1, w_2, \ldots, w_n]^T$ and $\mathbf{x} = [1, x_1, x_2, \ldots, x_n]^T$
 
-ŷ = X · W
-```
+**Matrix form (entire dataset):**
+
+$$\hat{\mathbf{y}} = \mathbf{X} \boldsymbol{\theta}$$
+
+- $\mathbf{X}$ is shape $(m \times (n+1))$ — $m$ examples, $n$ features + bias column of 1s
+- $\boldsymbol{\theta}$ is shape $((n+1) \times 1)$
 
 ---
 
-## 4. Cost Function (Loss)
+## 4. Cost Function
 
-The cost function measures **how wrong** our predictions are. We want to **minimize** this.
+### Mean Squared Error (MSE)
 
-### Mean Squared Error (MSE) — Most Common
+> **Simple Statement:** Measure how far off your predictions are from true values. We square the errors so negatives don't cancel positives, and large errors are punished more.
 
-```
-J(W) = (1/m) · Σ (ŷᵢ - yᵢ)²
-```
+$$J(\mathbf{w}, b) = \frac{1}{2m} \sum_{i=1}^{m} \left( \hat{y}^{(i)} - y^{(i)} \right)^2$$
 
-Or equivalently:
+- $m$ = number of training examples
+- The $\frac{1}{2}$ is a convenience trick — it cancels when we differentiate
+- Also written as $\text{MSE} = \frac{1}{m} \sum (\hat{y}_i - y_i)^2$
 
-```
-J(W) = (1/2m) · Σ (ŷᵢ - yᵢ)²
-```
+**Why MSE and not MAE?**
+- MSE is differentiable everywhere → works with gradient descent
+- MSE penalizes large errors more heavily (squared)
+- MAE is more robust to outliers but harder to optimize
 
-> The `1/2` is added for mathematical convenience (derivative becomes clean).
+**Matrix form:**
 
-Where:
-- `m` = number of training samples
-- `ŷᵢ` = predicted value for sample i
-- `yᵢ` = actual value for sample i
-
-### Why MSE?
-- Penalizes **larger errors more** (squared)
-- Always **positive**
-- **Differentiable** — needed for gradient descent
-- Has a nice **convex** shape (one global minimum)
-
-### MSE in Matrix Form
-
-```
-J(W) = (1/2m) · (XW - y)ᵀ (XW - y)
-```
+$$J(\boldsymbol{\theta}) = \frac{1}{2m} (\mathbf{X}\boldsymbol{\theta} - \mathbf{y})^T (\mathbf{X}\boldsymbol{\theta} - \mathbf{y})$$
 
 ---
 
 ## 5. Gradient Descent
 
-Gradient Descent is the **optimization algorithm** used to find the weights `W` that minimize the cost function.
+> **Simple Statement:** Imagine standing on a hilly landscape (the cost surface). You look around, find the steepest downhill direction, take a small step that way. Repeat until you reach the valley (minimum cost).
 
-### Core Idea
-> "Walk downhill on the cost surface, step by step, until you reach the bottom."
+### 5.1 The Core Idea
 
-### Update Rule
+We want to minimize $J(\mathbf{w}, b)$. We do this by iteratively updating parameters in the **direction of steepest descent** of the cost function.
+
+$$w_j := w_j - \alpha \frac{\partial J}{\partial w_j}$$
+$$b := b - \alpha \frac{\partial J}{\partial b}$$
+
+- $\alpha$ = **learning rate** (how big each step is)
+- $\frac{\partial J}{\partial w_j}$ = **gradient** (direction of steepest ascent, so we subtract)
+
+### 5.2 Deriving the Gradients
+
+Starting from:
+$$J = \frac{1}{2m} \sum_{i=1}^{m} (\hat{y}^{(i)} - y^{(i)})^2 = \frac{1}{2m} \sum_{i=1}^{m} (w \cdot x^{(i)} + b - y^{(i)})^2$$
+
+**Gradient w.r.t. $w_j$** (chain rule):
+
+$$\frac{\partial J}{\partial w_j} = \frac{1}{m} \sum_{i=1}^{m} \left(\hat{y}^{(i)} - y^{(i)}\right) x_j^{(i)}$$
+
+**Gradient w.r.t. $b$:**
+
+$$\frac{\partial J}{\partial b} = \frac{1}{m} \sum_{i=1}^{m} \left(\hat{y}^{(i)} - y^{(i)}\right)$$
+
+> **Key Insight:** The gradient is just the **average error** times the **feature value**. If predictions are too high, we decrease $w$. If predictions are too low, we increase $w$.
+
+### 5.3 Update Rules (Simultaneous Update!)
 
 ```
-W := W - α · ∂J/∂W
+IMPORTANT: Always compute ALL gradients FIRST, then update ALL parameters.
+Never update w, then use the updated w to compute the gradient for b.
 ```
 
-Where:
-- `α` = **learning rate** (step size)
-- `∂J/∂W` = gradient (slope of cost function w.r.t. W)
+$$w_j := w_j - \alpha \cdot \frac{1}{m} \sum_{i=1}^{m} (\hat{y}^{(i)} - y^{(i)}) x_j^{(i)}$$
 
-### Gradient Computation
+$$b := b - \alpha \cdot \frac{1}{m} \sum_{i=1}^{m} (\hat{y}^{(i)} - y^{(i)})$$
 
-For weights (slopes):
-```
-∂J/∂wⱼ = (1/m) · Σ (ŷᵢ - yᵢ) · xᵢⱼ
-```
+### 5.4 Types of Gradient Descent
 
-For bias:
-```
-∂J/∂w₀ = (1/m) · Σ (ŷᵢ - yᵢ)
-```
+| Type | Batch Size | Update Frequency | Pros | Cons |
+|------|-----------|-----------------|------|------|
+| **Batch GD** | All $m$ examples | Once per epoch | Stable, guaranteed convergence | Slow on large data |
+| **Stochastic GD (SGD)** | 1 example | Every example | Fast, online learning | Noisy, oscillates |
+| **Mini-Batch GD** | $k$ examples (32–512) | Every mini-batch | Best of both | Need to tune batch size |
 
-In matrix form:
-```
-∂J/∂W = (1/m) · Xᵀ · (XW - y)
-```
+### 5.5 Learning Rate $\alpha$ — Critical!
 
-Update step:
-```
-W := W - α · (1/m) · Xᵀ · (XW - y)
-```
+| Learning Rate | Behavior |
+|--------------|----------|
+| Too **large** | Overshoots minimum, diverges, cost increases |
+| Too **small** | Converges very slowly, wastes compute |
+| **Just right** | Smooth, steady decrease in cost |
 
-### Types of Gradient Descent
+**How to pick $\alpha$:** Try values like `0.001, 0.003, 0.01, 0.03, 0.1, 0.3` (each ~3x the last). Plot learning curves.
 
-| Type | Samples per Update | Speed | Noise |
-|---|---|---|---|
-| **Batch GD** | All m samples | Slow, stable | Low |
-| **Stochastic GD (SGD)** | 1 sample | Fast, noisy | High |
-| **Mini-Batch GD** | k samples (e.g., 32, 64) | Balanced | Medium |
+**Signs of convergence:** Cost decreases and flattens. If cost ever **increases**, lower $\alpha$.
+
+### 5.6 Convergence Test
+
+$$|J^{(t)} - J^{(t-1)}| < \epsilon \quad \text{(e.g., } \epsilon = 10^{-6})$$
+
+### 5.7 Vectorized Gradient Descent (Matrix Form)
+
+$$\boldsymbol{\theta} := \boldsymbol{\theta} - \frac{\alpha}{m} \mathbf{X}^T (\mathbf{X}\boldsymbol{\theta} - \mathbf{y})$$
+
+This is much faster than loops — uses NumPy BLAS operations under the hood.
 
 ---
 
 ## 6. Normal Equation (Closed-Form)
 
-Instead of iterating, we can solve for `W` **directly** (no learning rate needed):
+> **Simple Statement:** Instead of iterating, solve for the optimal weights directly using linear algebra. Set gradient = 0 and solve.
 
-```
-W = (XᵀX)⁻¹ · Xᵀ · y
-```
+Setting $\nabla_\theta J = 0$:
 
-### When to Use
-- Small datasets (< 10,000 samples)
-- When you want an **exact** answer without tuning
+$$\mathbf{X}^T \mathbf{X} \boldsymbol{\theta} = \mathbf{X}^T \mathbf{y}$$
 
-### Limitations
-- Computing `(XᵀX)⁻¹` is **O(n³)** — very slow for large `n`
-- Fails if `XᵀX` is **not invertible** (e.g., duplicate features)
-- Not scalable for large datasets → use Gradient Descent instead
+$$\boxed{\boldsymbol{\theta} = (\mathbf{X}^T \mathbf{X})^{-1} \mathbf{X}^T \mathbf{y}}$$
+
+**Pros:**
+- No learning rate to tune
+- No iterations
+- Exact solution in one step
+
+**Cons:**
+- Computing $(\mathbf{X}^T \mathbf{X})^{-1}$ is $O(n^3)$ — slow when $n$ (features) is large
+- Matrix may be **singular** (non-invertible) if features are linearly dependent
+- Doesn't scale to millions of features (use GD instead)
+
+**Rule of thumb:** Use Normal Equation when $n < 10{,}000$ features. Otherwise use gradient descent.
+
+**Pseudo-inverse (Moore-Penrose):** scikit-learn uses SVD decomposition instead of direct inverse → numerically stable.
 
 ---
 
 ## 7. Assumptions
 
-Linear Regression **requires** these assumptions to work well:
+> Linear regression has 5 key assumptions. Violating them doesn't break the model, but does affect reliability of predictions and coefficients.
 
-| # | Assumption | What it Means |
-|---|---|---|
-| 1 | **Linearity** | Relationship between X and y is linear |
-| 2 | **Independence** | Each sample is independent of others |
-| 3 | **Homoscedasticity** | Variance of errors is constant (not growing) |
-| 4 | **Normality of errors** | Residuals follow a normal distribution |
-| 5 | **No multicollinearity** | Features are not highly correlated with each other |
+| # | Assumption | What it means | How to check |
+|---|-----------|---------------|-------------|
+| 1 | **Linearity** | Relationship between X and y is linear | Scatter plots, residual vs fitted plot |
+| 2 | **Independence** | Observations are independent of each other | Domain knowledge, Durbin-Watson test |
+| 3 | **Homoscedasticity** | Residuals have constant variance | Residual plot (should be random cloud) |
+| 4 | **Normality of residuals** | Residuals follow normal distribution | QQ-plot, histogram of residuals |
+| 5 | **No multicollinearity** | Features are not highly correlated with each other | Correlation matrix, VIF score |
 
-### How to Check
-```python
-import matplotlib.pyplot as plt
-import numpy as np
-
-residuals = y_test - y_pred
-
-# 1. Residual plot (check linearity + homoscedasticity)
-plt.scatter(y_pred, residuals)
-plt.axhline(0, color='red')
-plt.xlabel("Predicted"); plt.ylabel("Residuals")
-plt.title("Residual Plot")
-plt.show()
-
-# 2. QQ plot (check normality)
-import scipy.stats as stats
-stats.probplot(residuals, dist="norm", plot=plt)
-plt.show()
-
-# 3. Correlation matrix (check multicollinearity)
-import seaborn as sns
-sns.heatmap(df.corr(), annot=True, cmap='coolwarm')
-plt.show()
-```
+**Remember with acronym:** **LINE + M** (Linearity, Independence, Normality, Equal-variance + no Multicollinearity)
 
 ---
 
 ## 8. Evaluation Metrics
 
-### 1. Mean Absolute Error (MAE)
-```
-MAE = (1/m) · Σ |ŷᵢ - yᵢ|
-```
-- Average of absolute errors
-- Less sensitive to outliers
-- Same unit as y
+### Mean Absolute Error (MAE)
+$$\text{MAE} = \frac{1}{m} \sum_{i=1}^m |y_i - \hat{y}_i|$$
+- Same unit as $y$
+- Robust to outliers
+- Not differentiable at 0
 
-### 2. Mean Squared Error (MSE)
-```
-MSE = (1/m) · Σ (ŷᵢ - yᵢ)²
-```
+### Mean Squared Error (MSE)
+$$\text{MSE} = \frac{1}{m} \sum_{i=1}^m (y_i - \hat{y}_i)^2$$
 - Penalizes large errors more
-- Not in same unit as y (squared)
+- Not in same unit as $y$
 
-### 3. Root Mean Squared Error (RMSE)
-```
-RMSE = √MSE
-```
-- Same unit as y — easy to interpret
-- Most commonly used
+### Root Mean Squared Error (RMSE)
+$$\text{RMSE} = \sqrt{\text{MSE}}$$
+- Same unit as $y$ ✅
+- Most commonly reported
 
-### 4. R² Score (Coefficient of Determination)
-```
-R² = 1 - (SS_res / SS_tot)
+### R² Score (Coefficient of Determination)
+$$R^2 = 1 - \frac{\text{SS}_\text{res}}{\text{SS}_\text{tot}} = 1 - \frac{\sum (y_i - \hat{y}_i)^2}{\sum (y_i - \bar{y})^2}$$
 
-SS_res = Σ (yᵢ - ŷᵢ)²   ← residual sum of squares
-SS_tot = Σ (yᵢ - ȳ)²    ← total sum of squares (ȳ = mean of y)
-```
+- Range: $(-\infty, 1]$
+- $R^2 = 1$: perfect fit
+- $R^2 = 0$: model is no better than just predicting the mean
+- $R^2 < 0$: model is worse than mean prediction (overfitting or wrong model)
 
-| R² Value | Meaning |
-|---|---|
-| `1.0` | Perfect fit |
-| `0.8 - 1.0` | Good fit |
-| `0.5 - 0.8` | Moderate fit |
-| `< 0.5` | Poor fit |
-| `< 0` | Model worse than mean baseline |
+> **Simple Statement:** R² tells you what **percentage of variance** in $y$ is explained by your model.
 
-### 5. Adjusted R²
-```
-Adjusted R² = 1 - [(1 - R²)(m - 1) / (m - n - 1)]
-```
-- Penalizes adding useless features
-- Always use this for **multiple regression**
+### Adjusted R²
+$$\bar{R}^2 = 1 - (1 - R^2) \frac{m-1}{m-p-1}$$
+- $p$ = number of features
+- Penalizes for adding useless features
+- Always use Adjusted R² for multiple regression
 
 ---
 
-## 9. Hyperparameters
+## 9. Python from Scratch
 
-These are the **settings you tune** before training.
-
-### 9.1 Learning Rate (`α`)
-
-The **most important** hyperparameter for gradient descent.
-
-```
-W := W - α · gradient
-```
-
-| α Value | Effect |
-|---|---|
-| Too small (e.g., 0.0001) | Converges very slowly |
-| Too large (e.g., 1.0) | Overshoots, may diverge |
-| **Ideal (0.001 - 0.1)** | Fast and stable convergence |
-
-```python
-# Try different learning rates
-learning_rates = [0.001, 0.01, 0.1, 0.3, 1.0]
-```
-
-### 9.2 Number of Iterations / Epochs
-
-How many times gradient descent updates the weights.
-
-```python
-n_iterations = 1000   # typical range: 100 to 10,000
-```
-
-- **Too few** → underfitting (model hasn't learned enough)
-- **Too many** → wasted computation (cost already converged)
-
-### 9.3 Batch Size (Mini-Batch GD)
-
-Number of samples used per gradient update.
-
-```python
-batch_size = 32   # common: 16, 32, 64, 128, 256
-```
-
-| Batch Size | Pros | Cons |
-|---|---|---|
-| 1 (SGD) | Fast, can escape local minima | Very noisy |
-| Full (Batch) | Stable gradient | Slow for large data |
-| 32–256 (Mini) | Best of both | Need to tune |
-
-### 9.4 Regularization Parameter (`λ` or `alpha`)
-
-Controls **how much** to penalize large weights (prevents overfitting).
-
-```python
-alpha = 0.1   # Ridge/Lasso regularization strength
-```
-
-- **λ = 0** → No regularization (standard regression)
-- **λ small** → Slight regularization
-- **λ large** → Strong regularization (may underfit)
-
-### 9.5 Tolerance (`tol`)
-
-Stop training when improvement is below this threshold.
-
-```python
-tol = 1e-4   # default in sklearn
-```
-
-### 9.6 Fit Intercept (`fit_intercept`)
-
-Whether to compute and include the bias term `w₀`.
-
-```python
-fit_intercept = True   # default; set False if data is already centered
-```
-
-### 9.7 Solver (Optimization Method)
-
-```python
-# For sklearn's Ridge, SGDRegressor etc.
-solver = 'saga'   # options: 'auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag', 'saga'
-```
-
-### Summary Table of Hyperparameters
-
-| Hyperparameter | Common Values | What it Controls |
-|---|---|---|
-| `learning_rate` α | 0.0001 – 0.3 | Step size in gradient descent |
-| `n_iterations` | 100 – 10,000 | Training duration |
-| `batch_size` | 16, 32, 64, 128 | Samples per gradient update |
-| `lambda` / `alpha` | 0.001 – 10 | Regularization strength |
-| `tolerance` | 1e-4 – 1e-8 | Early stopping threshold |
-| `fit_intercept` | True / False | Include bias term or not |
-| `solver` | 'lbfgs', 'saga' | Optimization algorithm |
-
----
-
-## 10. Regularization (Ridge, Lasso, ElasticNet)
-
-Used to **prevent overfitting** by penalizing large weights.
-
-### 10.1 Ridge Regression (L2)
-
-```
-J(W) = MSE + λ · Σ wⱼ²
-```
-
-- Adds **sum of squared weights** to cost
-- Shrinks weights toward zero but **never to exactly zero**
-- Good when **all features** are somewhat relevant
-
-```python
-from sklearn.linear_model import Ridge
-model = Ridge(alpha=1.0)   # alpha = λ
-model.fit(X_train, y_train)
-```
-
-### 10.2 Lasso Regression (L1)
-
-```
-J(W) = MSE + λ · Σ |wⱼ|
-```
-
-- Adds **sum of absolute weights** to cost
-- Can shrink weights to **exactly zero** → automatic feature selection!
-- Good when you suspect **many features are irrelevant**
-
-```python
-from sklearn.linear_model import Lasso
-model = Lasso(alpha=0.1)
-model.fit(X_train, y_train)
-```
-
-### 10.3 ElasticNet (L1 + L2)
-
-```
-J(W) = MSE + λ₁ · Σ |wⱼ| + λ₂ · Σ wⱼ²
-```
-
-- Combines Ridge and Lasso
-- `l1_ratio` controls the mix (0 = Ridge, 1 = Lasso)
-
-```python
-from sklearn.linear_model import ElasticNet
-model = ElasticNet(alpha=0.1, l1_ratio=0.5)   # 50% L1 + 50% L2
-model.fit(X_train, y_train)
-```
-
-### Comparison Table
-
-| Method | Penalty | Feature Selection | Handles Correlated Features |
-|---|---|---|---|
-| Linear Regression | None | No | Poorly |
-| Ridge (L2) | `λΣwⱼ²` | No | Yes |
-| Lasso (L1) | `λΣ\|wⱼ\|` | **Yes** | Poorly |
-| ElasticNet | L1 + L2 | **Yes** | Yes |
-
----
-
-## 11. Feature Scaling
-
-Linear Regression (with gradient descent) is **sensitive to feature scale**. Always scale!
-
-### Why?
-If `x₁` is in range [0, 1] but `x₂` is in range [0, 1,000,000], gradient descent will have a very elongated cost surface — slow and unstable.
-
-### Methods
-
-#### Standardization (Z-score normalization)
-```
-x_scaled = (x - μ) / σ
-```
-- Mean = 0, Std = 1
-- Best for most cases
-
-```python
-from sklearn.preprocessing import StandardScaler
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)   # use fit from train!
-```
-
-#### Min-Max Normalization
-```
-x_scaled = (x - x_min) / (x_max - x_min)
-```
-- Scales to [0, 1]
-
-```python
-from sklearn.preprocessing import MinMaxScaler
-scaler = MinMaxScaler()
-X_scaled = scaler.fit_transform(X)
-```
-
-> ⚠️ **Always fit scaler on training data only**, then transform both train and test.
-
----
-
-## 12. Complete Python Code
-
-### From Scratch (NumPy only)
+### 9.1 Simple Linear Regression — Step by Step
 
 ```python
 import numpy as np
 import matplotlib.pyplot as plt
 
-# ─────────────────────────────────────────────
-# 1. Generate Synthetic Data
-# ─────────────────────────────────────────────
+# ── 1. Generate toy data ──────────────────────────────────────────
 np.random.seed(42)
-m = 100           # number of samples
-X = 2 * np.random.rand(m, 1)
-y = 4 + 3 * X + np.random.randn(m, 1)   # y = 4 + 3x + noise
+m = 100
+X = 2 * np.random.rand(m, 1)          # shape (100, 1)
+y = 4 + 3 * X + np.random.randn(m, 1) # true: w=3, b=4
 
-# ─────────────────────────────────────────────
-# 2. Add Bias Column (column of ones)
-# ─────────────────────────────────────────────
-X_b = np.c_[np.ones((m, 1)), X]   # shape: (100, 2)
+# ── 2. Cost Function ──────────────────────────────────────────────
+def compute_cost(X, y, w, b):
+    m = len(y)
+    predictions = X * w + b
+    errors = predictions - y
+    cost = (1 / (2 * m)) * np.sum(errors ** 2)
+    return cost
 
-# ─────────────────────────────────────────────
-# 3. Hyperparameters
-# ─────────────────────────────────────────────
-learning_rate = 0.1
-n_iterations  = 1000
-batch_size    = 32       # for mini-batch GD
-
-# ─────────────────────────────────────────────
-# 4. Initialize Weights
-# ─────────────────────────────────────────────
-W = np.random.randn(2, 1)   # [w0 (bias), w1 (slope)]
-cost_history = []
-
-# ─────────────────────────────────────────────
-# 5. Gradient Descent
-# ─────────────────────────────────────────────
-for iteration in range(n_iterations):
-    # Predictions
-    y_pred = X_b.dot(W)
+# ── 3. Gradient Computation ───────────────────────────────────────
+def compute_gradients(X, y, w, b):
+    m = len(y)
+    predictions = X * w + b
+    errors = predictions - y           # shape (m, 1)
     
-    # Error
-    error = y_pred - y
+    dw = (1 / m) * np.sum(errors * X)  # scalar
+    db = (1 / m) * np.sum(errors)      # scalar
+    return dw, db
+
+# ── 4. Gradient Descent ───────────────────────────────────────────
+def gradient_descent(X, y, w_init=0, b_init=0, alpha=0.1, n_iter=1000):
+    w, b = w_init, b_init
+    cost_history = []
     
-    # Cost (MSE)
-    cost = (1 / (2 * m)) * np.sum(error ** 2)
-    cost_history.append(cost)
+    for i in range(n_iter):
+        dw, db = compute_gradients(X, y, w, b)
+        
+        # Simultaneous update
+        w = w - alpha * dw
+        b = b - alpha * db
+        
+        cost = compute_cost(X, y, w, b)
+        cost_history.append(cost)
+        
+        if i % 100 == 0:
+            print(f"Iter {i:4d} | Cost: {cost:.6f} | w: {w:.4f} | b: {b:.4f}")
     
-    # Gradient
-    gradient = (1 / m) * X_b.T.dot(error)
-    
-    # Update weights
-    W = W - learning_rate * gradient
+    return w, b, cost_history
 
-print(f"Learned weights: bias={W[0][0]:.4f}, slope={W[1][0]:.4f}")
-print(f"True values:     bias=4.0000, slope=3.0000")
-print(f"Final cost: {cost_history[-1]:.6f}")
+# ── 5. Train ──────────────────────────────────────────────────────
+w, b, cost_history = gradient_descent(X, y, alpha=0.1, n_iter=1000)
+print(f"\nFinal: w = {w:.4f}, b = {b:.4f}")
+# Expected: w ≈ 3.0, b ≈ 4.0
 
-# ─────────────────────────────────────────────
-# 6. Predict
-# ─────────────────────────────────────────────
-def predict(X_new, W):
-    X_new_b = np.c_[np.ones((len(X_new), 1)), X_new]
-    return X_new_b.dot(W)
-
-X_new = np.array([[0], [2]])
-print("\nPredictions:", predict(X_new, W).flatten())
-
-# ─────────────────────────────────────────────
-# 7. Plot Cost History
-# ─────────────────────────────────────────────
-plt.figure(figsize=(12, 4))
-
+# ── 6. Plot Learning Curve ────────────────────────────────────────
+plt.figure(figsize=(10, 4))
 plt.subplot(1, 2, 1)
 plt.plot(cost_history)
-plt.title("Cost vs Iterations")
-plt.xlabel("Iteration")
-plt.ylabel("MSE Cost")
-plt.grid(True)
+plt.xlabel("Iteration"); plt.ylabel("Cost (MSE/2)")
+plt.title("Learning Curve"); plt.grid(True)
 
 plt.subplot(1, 2, 2)
 plt.scatter(X, y, alpha=0.5, label="Data")
 X_line = np.linspace(0, 2, 100).reshape(-1, 1)
-plt.plot(X_line, predict(X_line, W), 'r-', linewidth=2, label="Prediction")
-plt.title("Linear Regression Fit")
+plt.plot(X_line, w * X_line + b, 'r-', linewidth=2, label=f"Fit: y={w:.2f}x+{b:.2f}")
 plt.xlabel("X"); plt.ylabel("y")
-plt.legend()
-plt.grid(True)
-
+plt.title("Best-Fit Line"); plt.legend(); plt.grid(True)
 plt.tight_layout()
 plt.show()
 ```
 
-### Normal Equation (Closed-Form)
+### 9.2 Multiple Linear Regression — Vectorized
 
 ```python
 import numpy as np
 
-# Normal Equation: W = (XᵀX)⁻¹ Xᵀ y
-W_normal = np.linalg.inv(X_b.T.dot(X_b)).dot(X_b.T).dot(y)
-print(f"Normal Eq: bias={W_normal[0][0]:.4f}, slope={W_normal[1][0]:.4f}")
+class LinearRegressionGD:
+    """
+    Linear Regression using Gradient Descent (vectorized, NumPy only).
+    """
+    def __init__(self, learning_rate=0.01, n_iterations=1000, verbose=False):
+        self.lr = learning_rate
+        self.n_iter = n_iterations
+        self.verbose = verbose
+        self.weights = None   # shape (n_features,)
+        self.bias = None      # scalar
+        self.cost_history = []
+    
+    def fit(self, X, y):
+        m, n = X.shape   # m=samples, n=features
+        
+        # Initialize parameters
+        self.weights = np.zeros(n)
+        self.bias = 0.0
+        
+        for i in range(self.n_iter):
+            # Forward pass: predictions
+            y_pred = X @ self.weights + self.bias   # (m,)
+            
+            # Compute errors
+            errors = y_pred - y                      # (m,)
+            
+            # Compute gradients (vectorized!)
+            dw = (1 / m) * (X.T @ errors)           # (n,)
+            db = (1 / m) * np.sum(errors)            # scalar
+            
+            # Update parameters (simultaneous)
+            self.weights -= self.lr * dw
+            self.bias    -= self.lr * db
+            
+            # Track cost
+            cost = (1 / (2 * m)) * np.sum(errors ** 2)
+            self.cost_history.append(cost)
+            
+            if self.verbose and i % 100 == 0:
+                print(f"Iter {i:5d} | Cost: {cost:.6f}")
+        
+        return self
+    
+    def predict(self, X):
+        return X @ self.weights + self.bias
+    
+    def score(self, X, y):
+        y_pred = self.predict(X)
+        ss_res = np.sum((y - y_pred) ** 2)
+        ss_tot = np.sum((y - np.mean(y)) ** 2)
+        return 1 - ss_res / ss_tot  # R²
+
+
+# ── Usage ─────────────────────────────────────────────────────────
+from sklearn.datasets import make_regression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+X, y = make_regression(n_samples=1000, n_features=5, noise=20, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+# IMPORTANT: scale features before gradient descent
+scaler = StandardScaler()
+X_train_s = scaler.fit_transform(X_train)
+X_test_s  = scaler.transform(X_test)
+
+model = LinearRegressionGD(learning_rate=0.1, n_iterations=1000, verbose=True)
+model.fit(X_train_s, y_train)
+print(f"R² on test: {model.score(X_test_s, y_test):.4f}")
 ```
 
-### Evaluation Metrics (from scratch)
+### 9.3 Normal Equation from Scratch
 
 ```python
-def mean_absolute_error(y_true, y_pred):
-    return np.mean(np.abs(y_true - y_pred))
+def normal_equation(X, y):
+    """
+    θ = (XᵀX)⁻¹ Xᵀy
+    Uses pseudo-inverse for numerical stability.
+    """
+    # Add bias column of 1s
+    X_b = np.c_[np.ones((len(X), 1)), X]
+    
+    # Closed-form solution
+    theta = np.linalg.pinv(X_b.T @ X_b) @ X_b.T @ y
+    # OR simply: theta = np.linalg.lstsq(X_b, y, rcond=None)[0]
+    
+    b = theta[0]
+    w = theta[1:]
+    return w, b
 
-def mean_squared_error(y_true, y_pred):
-    return np.mean((y_true - y_pred) ** 2)
-
-def rmse(y_true, y_pred):
-    return np.sqrt(mean_squared_error(y_true, y_pred))
-
-def r2_score(y_true, y_pred):
-    ss_res = np.sum((y_true - y_pred) ** 2)
-    ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
-    return 1 - (ss_res / ss_tot)
-
-# Test
-y_pred_all = X_b.dot(W)
-print(f"MAE:  {mean_absolute_error(y, y_pred_all):.4f}")
-print(f"MSE:  {mean_squared_error(y, y_pred_all):.4f}")
-print(f"RMSE: {rmse(y, y_pred_all):.4f}")
-print(f"R²:   {r2_score(y, y_pred_all):.4f}")
+w, b = normal_equation(X_train, y_train)
+print(f"Weights: {w}")
+print(f"Bias:    {b:.4f}")
 ```
 
 ---
 
-## 13. Sklearn Implementation
+## 10. Scikit-Learn Implementation
 
-### Basic Usage
+### 10.1 Basic Pipeline
 
 ```python
-import numpy as np
-import pandas as pd
-from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
-from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
 
-# ─────────────────────────────────────────────
-# Dataset (House Price Example)
-# ─────────────────────────────────────────────
+# ── Load / prepare data ───────────────────────────────────────────
 from sklearn.datasets import fetch_california_housing
-data = fetch_california_housing()
-X = pd.DataFrame(data.data, columns=data.feature_names)
-y = data.target
+housing = fetch_california_housing()
+X, y = housing.data, housing.target
 
-print("Shape:", X.shape)
-print("Features:", X.columns.tolist())
-print("\nFirst 5 rows:")
-print(X.head())
-
-# ─────────────────────────────────────────────
-# Train-Test Split
-# ─────────────────────────────────────────────
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-# ─────────────────────────────────────────────
-# Feature Scaling
-# ─────────────────────────────────────────────
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled  = scaler.transform(X_test)
-
-# ─────────────────────────────────────────────
-# Linear Regression
-# ─────────────────────────────────────────────
-lr = LinearRegression(fit_intercept=True)
-lr.fit(X_train_scaled, y_train)
-
-y_pred = lr.predict(X_test_scaled)
-
-print("\n--- Linear Regression ---")
-print(f"Intercept: {lr.intercept_:.4f}")
-print(f"Coefficients: {lr.coef_}")
-print(f"MAE:  {mean_absolute_error(y_test, y_pred):.4f}")
-print(f"RMSE: {np.sqrt(mean_squared_error(y_test, y_pred)):.4f}")
-print(f"R²:   {r2_score(y_test, y_pred):.4f}")
-```
-
-### Ridge, Lasso, ElasticNet
-
-```python
-# ─────────────────────────────────────────────
-# Ridge Regression
-# ─────────────────────────────────────────────
-ridge = Ridge(alpha=1.0, fit_intercept=True, solver='auto')
-ridge.fit(X_train_scaled, y_train)
-y_pred_ridge = ridge.predict(X_test_scaled)
-print(f"\nRidge R²: {r2_score(y_test, y_pred_ridge):.4f}")
-
-# ─────────────────────────────────────────────
-# Lasso Regression
-# ─────────────────────────────────────────────
-lasso = Lasso(alpha=0.01, max_iter=10000, tol=1e-4)
-lasso.fit(X_train_scaled, y_train)
-y_pred_lasso = lasso.predict(X_test_scaled)
-print(f"Lasso R²: {r2_score(y_test, y_pred_lasso):.4f}")
-print(f"Lasso zero coefficients: {np.sum(lasso.coef_ == 0)}")
-
-# ─────────────────────────────────────────────
-# ElasticNet
-# ─────────────────────────────────────────────
-en = ElasticNet(alpha=0.01, l1_ratio=0.5, max_iter=10000)
-en.fit(X_train_scaled, y_train)
-y_pred_en = en.predict(X_test_scaled)
-print(f"ElasticNet R²: {r2_score(y_test, y_pred_en):.4f}")
-```
-
-### Hyperparameter Tuning with GridSearchCV
-
-```python
-# ─────────────────────────────────────────────
-# Grid Search for Ridge
-# ─────────────────────────────────────────────
-param_grid = {
-    'alpha': [0.001, 0.01, 0.1, 1.0, 10.0, 100.0]
-}
-
-ridge_cv = GridSearchCV(
-    Ridge(),
-    param_grid,
-    cv=5,
-    scoring='r2',
-    n_jobs=-1,
-    verbose=1
-)
-ridge_cv.fit(X_train_scaled, y_train)
-
-print(f"\nBest alpha: {ridge_cv.best_params_}")
-print(f"Best CV R²: {ridge_cv.best_score_:.4f}")
-best_ridge = ridge_cv.best_estimator_
-y_pred_best = best_ridge.predict(X_test_scaled)
-print(f"Test R²:    {r2_score(y_test, y_pred_best):.4f}")
-```
-
-### Pipeline (Best Practice)
-
-```python
-# ─────────────────────────────────────────────
-# Full Pipeline: Scale → Model
-# ─────────────────────────────────────────────
-pipeline = Pipeline([
+# ── Build pipeline ────────────────────────────────────────────────
+pipe = Pipeline([
     ('scaler', StandardScaler()),
-    ('model', Ridge(alpha=1.0))
+    ('model',  LinearRegression())  
 ])
 
-pipeline.fit(X_train, y_train)
-y_pred_pipe = pipeline.predict(X_test)
-print(f"\nPipeline R²: {r2_score(y_test, y_pred_pipe):.4f}")
+# ── Fit ───────────────────────────────────────────────────────────
+pipe.fit(X_train, y_train)
 
-# Cross Validation
-cv_scores = cross_val_score(pipeline, X, y, cv=5, scoring='r2')
-print(f"CV R² scores: {cv_scores}")
-print(f"Mean CV R²: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+# ── Predict ───────────────────────────────────────────────────────
+y_pred = pipe.predict(X_test)
+
+# ── Evaluate ──────────────────────────────────────────────────────
+mse  = mean_squared_error(y_test, y_pred)
+rmse = np.sqrt(mse)
+mae  = mean_absolute_error(y_test, y_pred)
+r2   = r2_score(y_test, y_pred)
+
+print(f"MSE  : {mse:.4f}")
+print(f"RMSE : {rmse:.4f}")
+print(f"MAE  : {mae:.4f}")
+print(f"R²   : {r2:.4f}")
+
+# ── Cross-validation ──────────────────────────────────────────────
+cv_scores = cross_val_score(pipe, X, y, cv=5, scoring='neg_root_mean_squared_error')
+print(f"\nCV RMSE: {-cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+
+# ── Model Coefficients ────────────────────────────────────────────
+model = pipe.named_steps['model']
+print("\nCoefficients:", model.coef_)
+print("Intercept:   ", model.intercept_)
 ```
 
-### Polynomial Regression
+### 10.2 Residual Analysis
 
 ```python
-# ─────────────────────────────────────────────
-# Polynomial Regression (degree=2)
-# ─────────────────────────────────────────────
-poly_pipeline = Pipeline([
-    ('poly', PolynomialFeatures(degree=2, include_bias=False)),
-    ('scaler', StandardScaler()),
-    ('model', Ridge(alpha=1.0))
-])
+import matplotlib.pyplot as plt
 
-poly_pipeline.fit(X_train, y_train)
-y_pred_poly = poly_pipeline.predict(X_test)
-print(f"\nPolynomial (degree=2) R²: {r2_score(y_test, y_pred_poly):.4f}")
-```
-
-### Visualization
-
-```python
-# ─────────────────────────────────────────────
-# Visualization Dashboard
-# ─────────────────────────────────────────────
-fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-
-# 1. Actual vs Predicted
-axes[0, 0].scatter(y_test, y_pred, alpha=0.3, color='steelblue')
-axes[0, 0].plot([y_test.min(), y_test.max()],
-                [y_test.min(), y_test.max()], 'r--', lw=2)
-axes[0, 0].set_title("Actual vs Predicted")
-axes[0, 0].set_xlabel("Actual"); axes[0, 0].set_ylabel("Predicted")
-
-# 2. Residual Plot
 residuals = y_test - y_pred
-axes[0, 1].scatter(y_pred, residuals, alpha=0.3, color='orange')
-axes[0, 1].axhline(0, color='red', linestyle='--')
-axes[0, 1].set_title("Residuals vs Predicted")
-axes[0, 1].set_xlabel("Predicted"); axes[0, 1].set_ylabel("Residuals")
 
-# 3. Residual Histogram
-axes[1, 0].hist(residuals, bins=50, edgecolor='k', color='green', alpha=0.7)
-axes[1, 0].set_title("Residuals Distribution")
-axes[1, 0].set_xlabel("Residual"); axes[1, 0].set_ylabel("Count")
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
 
-# 4. Feature Coefficients
-coef_df = pd.DataFrame({
-    'Feature': data.feature_names,
-    'Coefficient': lr.coef_
-}).sort_values('Coefficient')
-axes[1, 1].barh(coef_df['Feature'], coef_df['Coefficient'], color='purple', alpha=0.7)
-axes[1, 1].axvline(0, color='red', linestyle='--')
-axes[1, 1].set_title("Feature Coefficients")
+# Residuals vs Fitted
+axes[0].scatter(y_pred, residuals, alpha=0.3)
+axes[0].axhline(0, color='red', linestyle='--')
+axes[0].set_xlabel("Fitted values"); axes[0].set_ylabel("Residuals")
+axes[0].set_title("Residuals vs Fitted")
+
+# Histogram of residuals
+axes[1].hist(residuals, bins=50, edgecolor='black')
+axes[1].set_xlabel("Residual"); axes[1].set_title("Residual Distribution")
+
+# QQ Plot
+from scipy import stats
+stats.probplot(residuals, dist="norm", plot=axes[2])
+axes[2].set_title("QQ Plot (Normality Check)")
 
 plt.tight_layout()
-plt.savefig("linear_regression_analysis.png", dpi=150)
 plt.show()
 ```
 
-### Alpha vs R² Plot (Regularization Tuning)
+### 10.3 Feature Importance Visualization
 
 ```python
-# ─────────────────────────────────────────────
-# Regularization Path
-# ─────────────────────────────────────────────
-alphas = np.logspace(-4, 4, 100)
-ridge_scores = []
-lasso_scores = []
+import pandas as pd
+import matplotlib.pyplot as plt
 
-for alpha in alphas:
-    r = Ridge(alpha=alpha)
-    r.fit(X_train_scaled, y_train)
-    ridge_scores.append(r2_score(y_test, r.predict(X_test_scaled)))
+feature_names = housing.feature_names
+coefs = pd.Series(model.coef_, index=feature_names).sort_values()
+
+plt.figure(figsize=(8, 5))
+coefs.plot(kind='barh', color=['red' if c < 0 else 'steelblue' for c in coefs])
+plt.axvline(0, color='black', linewidth=0.8)
+plt.xlabel("Coefficient Value")
+plt.title("Feature Coefficients (after StandardScaling = comparable)")
+plt.tight_layout()
+plt.show()
+```
+
+---
+
+## 11. Hyperparameters & Tuning
+
+### LinearRegression (sklearn)
+
+| Parameter | Default | Description | When to change |
+|-----------|---------|-------------|----------------|
+| `fit_intercept` | `True` | Whether to compute bias $b$ | Set `False` if data is already centered |
+| `copy_X` | `True` | Copy X before fitting | `False` to save memory (modifies X in-place) |
+| `n_jobs` | `None` | Parallel jobs for computation | Set `-1` to use all CPUs on large datasets |
+| `positive` | `False` | Force all coefficients ≥ 0 | When negative coefs are physically impossible |
+
+### SGDRegressor (GD-based, for large datasets)
+
+| Parameter | Default | Description | Recommended Range |
+|-----------|---------|-------------|------------------|
+| `loss` | `'squared_error'` | Loss function | `'huber'` for outlier robustness |
+| `penalty` | `'l2'` | Regularization type | `'l1'`, `'l2'`, `'elasticnet'`, `None` |
+| `alpha` | `0.0001` | Regularization strength | `1e-5` to `1e0` (log scale) |
+| `l1_ratio` | `0.15` | Mix for ElasticNet | `0` to `1` |
+| `max_iter` | `1000` | Max epochs | `500` to `5000` |
+| `tol` | `1e-3` | Convergence tolerance | `1e-4` to `1e-2` |
+| `learning_rate` | `'invscaling'` | LR schedule | `'constant'`, `'optimal'`, `'adaptive'` |
+| `eta0` | `0.01` | Initial learning rate | `1e-4` to `1e-1` |
+| `early_stopping` | `False` | Stop if val score doesn't improve | `True` for faster training |
+| `validation_fraction` | `0.1` | Val set size for early stopping | `0.1` to `0.2` |
+| `n_iter_no_change` | `5` | Patience for early stopping | `5` to `20` |
+| `warm_start` | `False` | Reuse previous fit | `True` for incremental learning |
+| `shuffle` | `True` | Shuffle data each epoch | Keep `True` for SGD |
+| `random_state` | `None` | Reproducibility | Set any integer |
+
+```python
+from sklearn.linear_model import SGDRegressor
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+
+pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('sgd', SGDRegressor(random_state=42))
+])
+
+param_grid = {
+    'sgd__alpha':         [0.0001, 0.001, 0.01, 0.1],
+    'sgd__learning_rate': ['constant', 'invscaling', 'adaptive'],
+    'sgd__eta0':          [0.001, 0.01, 0.1],
+    'sgd__max_iter':      [1000, 2000],
+}
+
+gs = GridSearchCV(pipe, param_grid, cv=5, scoring='neg_root_mean_squared_error', n_jobs=-1)
+gs.fit(X_train, y_train)
+
+print("Best params:", gs.best_params_)
+print("Best RMSE: ", -gs.best_score_)
+```
+
+---
+
+## 12. Regularization
+
+> **Simple Statement:** Regularization adds a penalty to the cost function for large weights, preventing the model from memorizing training data (overfitting).
+
+### 12.1 Ridge Regression (L2)
+
+$$J(\boldsymbol{\theta}) = \text{MSE} + \alpha \sum_{j=1}^{n} w_j^2$$
+
+- Shrinks all weights toward 0 but never exactly to 0
+- Works well when many features have small effects
+- **Closed form:** $\boldsymbol{\theta} = (\mathbf{X}^T\mathbf{X} + \alpha\mathbf{I})^{-1}\mathbf{X}^T\mathbf{y}$
+- The $\alpha\mathbf{I}$ term also fixes the singularity problem!
+
+```python
+from sklearn.linear_model import Ridge, RidgeCV
+import numpy as np
+
+# Manual alpha selection
+ridge = Ridge(alpha=1.0)
+ridge.fit(X_train, y_train)
+
+# Or use RidgeCV (built-in cross-validation)
+alphas = np.logspace(-3, 3, 100)
+ridge_cv = RidgeCV(alphas=alphas, cv=5, scoring='neg_mean_squared_error')
+ridge_cv.fit(X_train, y_train)
+print(f"Best alpha: {ridge_cv.alpha_}")
+print(f"R²: {ridge_cv.score(X_test, y_test):.4f}")
+```
+
+### 12.2 Lasso Regression (L1)
+
+$$J(\boldsymbol{\theta}) = \text{MSE} + \alpha \sum_{j=1}^{n} |w_j|$$
+
+- Can shrink weights to **exactly 0** → automatic feature selection
+- Produces **sparse** models
+- Useful when you suspect only a few features matter
+
+```python
+from sklearn.linear_model import Lasso, LassoCV
+
+lasso_cv = LassoCV(cv=5, random_state=42, max_iter=10000)
+lasso_cv.fit(X_train, y_train)
+print(f"Best alpha: {lasso_cv.alpha_}")
+
+# Check which features were zeroed out
+import pandas as pd
+coef_df = pd.DataFrame({
+    'feature': housing.feature_names,
+    'coefficient': lasso_cv.coef_
+})
+print(coef_df[coef_df.coefficient != 0])  # surviving features
+```
+
+### 12.3 ElasticNet (L1 + L2)
+
+$$J(\boldsymbol{\theta}) = \text{MSE} + r \cdot \alpha \sum|w_j| + \frac{1-r}{2} \cdot \alpha \sum w_j^2$$
+
+- `l1_ratio` $r=1$ → pure Lasso; $r=0$ → pure Ridge
+- Best when you want both feature selection AND grouping of correlated features
+
+```python
+from sklearn.linear_model import ElasticNet, ElasticNetCV
+
+en_cv = ElasticNetCV(l1_ratio=[0.1, 0.5, 0.7, 0.9, 0.95, 1.0],
+                     cv=5, random_state=42, max_iter=10000)
+en_cv.fit(X_train, y_train)
+print(f"Best alpha: {en_cv.alpha_}, l1_ratio: {en_cv.l1_ratio_}")
+```
+
+### 12.4 Comparison Table
+
+| | Ridge | Lasso | ElasticNet |
+|--|-------|-------|------------|
+| Penalty | $\sum w_j^2$ | $\sum |w_j|$ | Mix of both |
+| Feature selection | ❌ | ✅ | ✅ |
+| Handles correlated features | ✅ | ❌ (picks one) | ✅ |
+| Sparse solution | ❌ | ✅ | ✅ |
+| Sklearn class | `Ridge` | `Lasso` | `ElasticNet` |
+
+---
+
+## 13. Feature Scaling & Preprocessing
+
+> **Simple Statement:** Gradient descent works much better when all features are on the same scale. Otherwise, the cost function is elongated and GD bounces around.
+
+### Why Scaling Matters
+
+- Feature $x_1$ ∈ [0, 5000] (area in sqft)
+- Feature $x_2$ ∈ [0, 5] (number of rooms)
+- Without scaling: $w_1$ needs tiny updates, $w_2$ needs large updates → uneven gradients
+
+### StandardScaler (Z-score normalization)
+
+$$x' = \frac{x - \mu}{\sigma}$$
+
+- Mean = 0, Std = 1
+- Best for: Gaussian-ish features, Ridge regression
+- Not bounded
+
+### MinMaxScaler (Min-Max normalization)
+
+$$x' = \frac{x - x_{\min}}{x_{\max} - x_{\min}}$$
+
+- Range [0, 1]
+- Sensitive to outliers
+- Best for: Neural networks, bounded features
+
+### RobustScaler
+
+$$x' = \frac{x - \text{median}}{\text{IQR}}$$
+
+- Best for: Data with outliers
+
+```python
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
+from sklearn.pipeline import Pipeline
+
+# CRITICAL RULE: Fit scaler on TRAIN set only. Transform both train and test.
+# Using Pipeline prevents data leakage automatically.
+
+pipe = Pipeline([
+    ('scaler', StandardScaler()),   # swap in MinMaxScaler() or RobustScaler() as needed
+    ('model', LinearRegression())
+])
+
+pipe.fit(X_train, y_train)
+y_pred = pipe.predict(X_test)
+```
+
+---
+
+## 14. Polynomial Regression
+
+> **Simple Statement:** Transform features into polynomial features (e.g., $x, x^2, x^3$) to fit curved relationships, then apply linear regression on the transformed features.
+
+$$\hat{y} = w_0 + w_1 x + w_2 x^2 + w_3 x^3 + \cdots$$
+
+This is still **linear** in the parameters (weights)!
+
+```python
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import validation_curve
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Generate non-linear data
+np.random.seed(42)
+X = np.sort(np.random.rand(100, 1) * 6 - 3, axis=0)
+y = 0.5 * X.ravel() ** 2 + X.ravel() + 2 + np.random.randn(100)
+
+# Compare degrees
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+for ax, degree in zip(axes, [1, 2, 10]):
+    pipe = Pipeline([
+        ('poly', PolynomialFeatures(degree=degree, include_bias=False)),
+        ('scaler', StandardScaler()),
+        ('model', LinearRegression())
+    ])
+    pipe.fit(X, y)
     
-    try:
-        l = Lasso(alpha=alpha, max_iter=10000)
-        l.fit(X_train_scaled, y_train)
-        lasso_scores.append(r2_score(y_test, l.predict(X_test_scaled)))
-    except:
-        lasso_scores.append(np.nan)
+    X_plot = np.linspace(-3, 3, 300).reshape(-1, 1)
+    y_plot = pipe.predict(X_plot)
+    
+    ax.scatter(X, y, alpha=0.5, s=20)
+    ax.plot(X_plot, y_plot, 'r-', linewidth=2)
+    ax.set_title(f"Degree {degree} | R²={pipe.score(X, y):.3f}")
+    ax.grid(True)
 
-plt.figure(figsize=(10, 5))
-plt.semilogx(alphas, ridge_scores, label='Ridge', color='blue')
-plt.semilogx(alphas, lasso_scores, label='Lasso', color='red')
-plt.xlabel("Alpha (Regularization Strength)")
-plt.ylabel("R² Score")
-plt.title("Regularization Path: R² vs Alpha")
-plt.legend(); plt.grid(True)
+plt.tight_layout()
 plt.show()
+
+# ── Choose best degree via cross-validation ───────────────────────
+degrees = range(1, 11)
+train_scores, val_scores = [], []
+
+for d in degrees:
+    pipe = Pipeline([
+        ('poly', PolynomialFeatures(degree=d, include_bias=False)),
+        ('scaler', StandardScaler()),
+        ('model', LinearRegression())
+    ])
+    cv = cross_val_score(pipe, X, y, cv=5, scoring='neg_rmse' if False else 'r2')
+    val_scores.append(cv.mean())
+
+best_degree = degrees[np.argmax(val_scores)]
+print(f"Best degree: {best_degree}")
 ```
 
 ---
 
-## 14. Common Mistakes & Tips
+## 15. Bias-Variance Tradeoff
 
-### ❌ Mistake 1: Not Scaling Features
+> **Simple Statement:** 
+> - **High Bias (Underfitting):** Model is too simple, misses patterns. Bad on train AND test.
+> - **High Variance (Overfitting):** Model memorizes training data, fails to generalize. Great on train, bad on test.
+> - **Goal:** Find the sweet spot.
+
+$$\text{Error} = \text{Bias}^2 + \text{Variance} + \text{Irreducible Noise}$$
+
+| Symptom | Diagnosis | Fix |
+|---------|-----------|-----|
+| High train error, high test error | High Bias | More features, higher degree, less regularization |
+| Low train error, high test error | High Variance | More data, regularization, fewer features, lower degree |
+| Both errors high and close | Underfitting | More complex model |
+| Train ≪ Test error | Overfitting | Regularize, get more data |
+
+### Learning Curves (Diagnostic Tool)
+
 ```python
-# Wrong
-model.fit(X_train, y_train)   # features in different scales
+from sklearn.model_selection import learning_curve
+import matplotlib.pyplot as plt
+import numpy as np
 
-# Correct
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X_train)
-model.fit(X_scaled, y_train)
+def plot_learning_curve(model, X, y, title="Learning Curve"):
+    train_sizes, train_scores, val_scores = learning_curve(
+        model, X, y,
+        train_sizes=np.linspace(0.1, 1.0, 10),
+        cv=5,
+        scoring='neg_root_mean_squared_error',
+        n_jobs=-1
+    )
+    
+    train_rmse = -train_scores.mean(axis=1)
+    val_rmse   = -val_scores.mean(axis=1)
+    
+    plt.figure(figsize=(8, 5))
+    plt.plot(train_sizes, train_rmse, 'o-', color='blue',  label='Train RMSE')
+    plt.plot(train_sizes, val_rmse,   'o-', color='orange', label='Val RMSE')
+    plt.fill_between(train_sizes,
+                     train_rmse - (-train_scores).std(axis=1),
+                     train_rmse + (-train_scores).std(axis=1), alpha=0.1)
+    plt.xlabel("Training Size"); plt.ylabel("RMSE")
+    plt.title(title); plt.legend(); plt.grid(True)
+    plt.show()
+
+# Underfit model (degree 1)
+pipe_linear = Pipeline([('scaler', StandardScaler()), ('model', LinearRegression())])
+plot_learning_curve(pipe_linear, X, y, "Linear (degree 1) — Underfitting?")
+
+# Overfit model (degree 10)
+pipe_poly10 = Pipeline([
+    ('poly', PolynomialFeatures(10, include_bias=False)),
+    ('scaler', StandardScaler()),
+    ('model', LinearRegression())
+])
+plot_learning_curve(pipe_poly10, X, y, "Polynomial (degree 10) — Overfitting?")
 ```
 
-### ❌ Mistake 2: Fitting Scaler on Test Data
-```python
-# Wrong — data leakage!
-X_test_scaled = scaler.fit_transform(X_test)
-
-# Correct — only transform test
-X_test_scaled = scaler.transform(X_test)
-```
-
-### ❌ Mistake 3: Using Linear Regression for Non-Linear Data
-```python
-# Check relationship first
-plt.scatter(X, y)   # if it looks curved → use PolynomialFeatures or tree-based models
-```
-
-### ❌ Mistake 4: Ignoring Multicollinearity
-```python
-# Check VIF (Variance Inflation Factor)
-from statsmodels.stats.outliers_influence import variance_inflation_factor
-
-vif_data = pd.DataFrame()
-vif_data["feature"] = X.columns
-vif_data["VIF"] = [variance_inflation_factor(X.values, i) for i in range(len(X.columns))]
-print(vif_data)
-# VIF > 10 → multicollinearity problem → drop or combine features
-```
-
-### ❌ Mistake 5: Not Checking Outliers
-```python
-# Outliers heavily affect linear regression
-import scipy.stats as stats
-z_scores = np.abs(stats.zscore(X))
-X_clean = X[(z_scores < 3).all(axis=1)]   # remove outliers
-```
-
-### ✅ Tips
-
-- Always do **EDA** (Exploratory Data Analysis) before modeling
-- Use **cross-validation** instead of a single train/test split
-- Try **Ridge first**, then Lasso if feature selection is needed
-- For large datasets, use **SGDRegressor** (much faster)
-- Use **Pipeline** to avoid data leakage and simplify code
-- Plot **learning curves** to diagnose underfitting/overfitting
+**How to read learning curves:**
+- If **both curves converge high** → High Bias (underfitting) → more complex model
+- If **big gap between train and val** → High Variance (overfitting) → regularize or get more data
+- **Good model:** val curve decreases and approaches train curve at reasonable RMSE
 
 ---
 
-## 15. Interview Questions
+## 16. Common Interview Questions
 
-**Q1: What is the difference between MSE and MAE?**
-> MSE penalizes large errors more (squared), making it sensitive to outliers. MAE treats all errors equally and is more robust.
+### Conceptual
 
-**Q2: When would you use Lasso over Ridge?**
-> Lasso when you want automatic feature selection (it can set weights to zero). Ridge when all features are useful but need shrinkage.
+**Q: What is the difference between correlation and regression?**
+> Correlation measures the strength and direction of a linear relationship between two variables (a single number between -1 and 1). Regression gives you the equation to predict one variable from another(s).
 
-**Q3: What happens if learning rate is too high?**
-> The cost function diverges (increases instead of decreasing). The weights overshoot the minimum.
+**Q: Why do we use MSE instead of absolute error for linear regression?**
+> MSE is differentiable everywhere, making it compatible with gradient descent. It also penalizes large errors more heavily via squaring. MAE is not differentiable at 0 and treats all errors equally.
 
-**Q4: Why add a column of 1s to X?**
-> To absorb the bias term `w₀` into the matrix multiplication `XW`, simplifying the math.
+**Q: Can linear regression be used for classification?**
+> Technically yes (predict 0 or 1 and threshold), but it's not ideal because predictions can go outside [0, 1], it's sensitive to outliers, and doesn't model probability correctly. Use Logistic Regression instead.
 
-**Q5: Is Linear Regression affected by outliers?**
-> Yes, heavily. MSE squares the errors so outliers dominate. Use MAE or Huber loss for robustness.
+**Q: What happens if features are correlated (multicollinearity)?**
+> Coefficients become unstable and hard to interpret. $(\mathbf{X}^T\mathbf{X})$ becomes near-singular. Standard errors inflate. Solution: remove correlated features, use PCA, or use Ridge regression.
 
-**Q6: What is the Normal Equation and when NOT to use it?**
-> It computes exact weights in one step: `W = (XᵀX)⁻¹ Xᵀy`. Avoid it for large `n` (features) because matrix inversion is O(n³) — too slow.
+**Q: When would you use Normal Equation vs Gradient Descent?**
+> Normal Equation: small $n$ (< 10k features), no need to tune hyperparameters, exact solution. Gradient Descent: large $n$, large $m$, works online, scalable.
 
-**Q7: What is multicollinearity?**
-> When two or more features are highly correlated. It makes weights unstable and hard to interpret. Detected via VIF > 10 or correlation matrix.
+**Q: What is the effect of regularization on coefficients?**
+> Both Ridge and Lasso shrink coefficients toward 0. Ridge never reaches exactly 0 (all features kept). Lasso can zero out features completely (feature selection). As $\alpha$ increases, more shrinkage occurs.
 
-**Q8: Difference between parameters and hyperparameters?**
-> **Parameters** (weights `W`) are learned during training. **Hyperparameters** (learning rate, alpha, batch size) are set before training.
+**Q: Why must we scale features before Gradient Descent?**
+> Without scaling, the cost function contours are elongated ellipses. Gradient descent oscillates and converges slowly. After scaling, contours are circular, and GD converges in a straighter path.
+
+**Q: What is R² and what are its limitations?**
+> R² measures proportion of variance explained. Limitations: always increases when you add features (use Adjusted R²); doesn't indicate whether assumptions are met; can be high even if the model is wrong for extrapolation.
+
+**Q: Explain Gradient Descent intuitively.**
+> Like descending a mountain blindfolded: you feel the slope under your feet (gradient), step in the steepest downhill direction, repeat until you reach the valley (minimum cost).
+
+**Q: What is the difference between batch, stochastic, and mini-batch gradient descent?**
+> Batch GD computes gradient on all data — stable but slow. SGD uses one example per update — fast but noisy. Mini-batch uses a small batch (32–512) — the industry standard, balancing speed and stability.
 
 ---
 
-## 📎 Quick Reference Cheat Sheet
+## 17. Resources
+
+### 📺 Andrew Ng — ML Specialization (Coursera)
+- Course 1, Week 1–2: Linear regression, cost function, gradient descent
+- **Key videos:** "Cost function intuition", "Gradient descent in practice"
+- [https://www.coursera.org/specializations/machine-learning-introduction](https://www.coursera.org/specializations/machine-learning-introduction)
+- Free audit available!
+
+### 📺 StatQuest with Josh Starmer (YouTube)
+- [Linear Regression, Clearly Explained!!!](https://www.youtube.com/watch?v=nk2CQITm_eo)
+- [Gradient Descent, Step-by-Step](https://www.youtube.com/watch?v=sDv4f4s2SB8)
+- [R-squared, Clearly Explained](https://www.youtube.com/watch?v=2AQKmw14mHM)
+- [Ridge vs Lasso Regression](https://www.youtube.com/watch?v=Xm2C_gTAl8c)
+- [Multiple Regression](https://www.youtube.com/watch?v=EkAQAi3a4js)
+
+### 📖 Hands-On Machine Learning (Géron) — O'Reilly
+- **Chapter 4:** Training Linear Models — gradient descent, normal equation, regularization
+- GitHub: [https://github.com/ageron/handson-ml3](https://github.com/ageron/handson-ml3)
+- Notebooks are free on Colab!
+
+### 📖 Introduction to Statistical Learning with Python (ISLP)
+- **Chapter 3:** Linear Regression — comprehensive statistical treatment
+- Free PDF: [https://www.statlearning.com/](https://www.statlearning.com/)
+- Python labs included
+
+### 📚 Scikit-Learn Documentation
+- [LinearRegression](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html)
+- [SGDRegressor](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.SGDRegressor.html)
+- [Ridge](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html)
+- [Lasso](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html)
+- [Linear Models User Guide](https://scikit-learn.org/stable/modules/linear_model.html)
+
+### 🔗 Additional
+- [3Blue1Brown — Essence of Calculus (for gradient intuition)](https://www.youtube.com/playlist?list=PLZHQObOWTQDMsr9K-rj53DwVRMYO3t5Yr)
+- [CS229 Notes (Stanford) — Andrew Ng's original course notes (free)](https://cs229.stanford.edu/lectures-spring2022/main_notes.pdf)
+
+---
+
+## 🗺️ Quick Reference Cheatsheet
 
 ```
-Model:        ŷ = Xw + b
-Loss:         J = (1/2m) Σ(ŷ - y)²
-Update:       W := W - α · (1/m) · Xᵀ(Xw - y)
-Normal Eq:    W = (XᵀX)⁻¹Xᵀy
-Ridge:        J + λΣwⱼ²
-Lasso:        J + λΣ|wⱼ|
-ElasticNet:   J + λ₁Σ|wⱼ| + λ₂Σwⱼ²
-R²:           1 - SS_res/SS_tot
+LINEAR REGRESSION WORKFLOW
+══════════════════════════════════════════════════════
+
+1. EXPLORE DATA
+   ├── Check shape, dtypes, missing values
+   ├── Plot distributions (hist, boxplot)
+   ├── Correlation matrix / heatmap
+   └── Scatter plots: y vs each feature
+
+2. PREPROCESS
+   ├── Handle missing values (impute)
+   ├── Encode categoricals (OneHot, Ordinal)
+   ├── Scale features → StandardScaler
+   └── Split: train / val / test
+
+3. TRAIN
+   ├── LinearRegression (small n)
+   ├── SGDRegressor (large dataset)
+   └── Start simple, then regularize
+
+4. EVALUATE
+   ├── RMSE, MAE, R², Adjusted R²
+   ├── Cross-validation (CV=5 or 10)
+   ├── Learning curves
+   └── Residual plots
+
+5. TUNE
+   ├── If High Bias: more features, higher degree poly
+   ├── If High Variance: regularization (Ridge/Lasso)
+   └── Grid/RandomSearchCV for hyperparameters
+
+6. DEPLOY
+   ├── Refit on full train+val data
+   ├── Evaluate on held-out test set
+   └── Package with Pipeline (scaler + model)
+
+KEY FORMULAS SNAPSHOT
+══════════════════════════════════════════════════════
+Prediction:     ŷ = Xθ
+Cost:           J = (1/2m) ||Xθ - y||²
+GD Update:      θ := θ - (α/m) Xᵀ(Xθ - y)
+Normal Eq:      θ = (XᵀX)⁻¹ Xᵀy
+Ridge Cost:     J + α Σwⱼ²
+Lasso Cost:     J + α Σ|wⱼ|
+R²:             1 - SS_res / SS_tot
 ```
 
 ---
 
-## 🔗 Resources
-
-- [Scikit-learn Docs — LinearRegression](https://scikit-learn.org/stable/modules/linear_model.html)
-- [StatQuest — Linear Regression (YouTube)](https://www.youtube.com/watch?v=nk2CQITm_eo)
-- [Andrew Ng — ML Course Notes](https://cs229.stanford.edu/notes2022fall/main_notes.pdf)
-- [Elements of Statistical Learning (ESL) — Free PDF](https://hastie.su.domains/ElemStatLearn/)
-
----
-
-*Made with 💙 for ML/DL learners — covers theory, math, code, and hyperparameters completely.*
+*Notes compiled for ML/DL job readiness. Sources: Andrew Ng Coursera ML Specialization, Hands-On ML (Géron), StatQuest (Starmer), ISLP (James et al.), Scikit-Learn documentation.*
